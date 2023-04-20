@@ -1,0 +1,87 @@
+// Initialize some values in memory
+LDUR x1, [x0, #0]      // Load from memory at address 0 into x1
+LDUR x2, [x0, #8]      // Load from memory at address 8 into x2
+LDUR x3, [x0, #16]     // Load from memory at address 16 into x3
+
+// Perform some arithmetic operations
+ADD x4, x1, x2        // Add x1 and x2, store result in x4
+ADDI x5, x3, #10       // Add immediate value 10 to x3, store result in x5
+SUB x6, x4, x5        // Subtract x5 from x4, store result in x6
+SUBI x7, x6, #1        // Subtract immediate value 1 from x6, store result in x7
+SUBS x8, x7, x1        // Subtract x1 from x7, set condition flags in CPSR, store result in x8
+SUBIS x9, x8, #0x10     // Subtract immediate value 0x10 from x8, set condition flags in CPSR, store result in x9
+MUL x10, x2, x3       // Multiply x2 and x3, store result in x10
+
+// Perform some logical operations
+AND  x11, x1, x2       // Bitwise AND x1 and x2, store result in x11
+ANDI x12, x3, #0xFF    // Bitwise AND immediate value 0xFF with x3, store result in x12
+EOR  x13, x11, x12     // Bitwise exclusive OR x11 and x12, store result in x13
+EORI x14, x13, #0xFFFF // Bitwise exclusive OR immediate value 0xFFFF with x13, store result in x14
+ORR  x15, x2, x3       // Bitwise OR x2 and x3, store result in x15
+ORRI x16, x1, #0xF0    // Bitwise OR immediate value 0xF0 with x1, store result in x16
+
+// Perform some branching operations
+B.EQ label1             // Branch to label1 if the equal flag in CPSR is set
+B.NE label2             // Branch to label2 if the not-equal flag in CPSR is set
+B.HS label3             // Branch to label3 if the higher-or-same flag in CPSR is set
+B.LO label4             // Branch to label4 if the lower flag in CPSR is set
+B.MI label5             // Branch to label5 if the negative flag in CPSR is set
+B.PL label6             // Branch to label6 if the positive-or-zero flag in CPSR is set
+B.VS label7             // Branch to label7 if the overflow flag in CPSR is set
+B.VC label8             // Branch to label8 if the no-overflow flag in CPSR is set
+B.HI label9             // Branch to label9 if the higher flag in CPSR is set
+B.LS label10            // Branch to label10 if the lower-or-same flag in CPSR is set
+B.GE label11
+B.LT label12            // Branch to label11 if the negative flag is different from the overflow flag in CPSR
+B.GT label13            // Branch to label12 if the greater-than flag in CPSR is set
+B.LE label14            // Branch to label13 if the less-than-or-equal flag in CPSR is set
+BL subroutine         // Branch with link to subroutine
+BR x0                // Branch to the address stored in x0
+CBNZ x1, label15       // Compare x1 to zero, branch to label14 if it is not zero
+CBZ x2, label16       // Compare x2 to zero, branch to label15 if it is zero
+
+// Perform some memory operations
+STUR x3, [x0, #24]     // Store x3 in memory at address 24
+LSL x4, x4, #2        // Logical shift left x4 by 2 bits, store result in x4
+LSR x5, x5, #3        // Logical shift right x5 by 3 bits, store result in x5
+
+// Call custom instructions
+PRNT x6                // Print contents of x6 in hex and decimal
+PRNL                      // Print a blank line
+DUMP                      // Display contents of all registers and memory, as well as the disassembled program
+HALT                      // Trigger a DUMP and terminate the emulator
+
+subroutine:
+    BR LR
+label1:
+    BR LR
+label2:
+    BR LR
+label3:
+    BR LR
+label4:
+    BR LR
+label5:
+    BR LR
+label6:
+    BR LR
+label7:
+    BR LR
+label8:
+    BR LR
+label9:
+    BR LR
+label10:
+    BR LR
+label11:
+    BR LR
+label12:
+    BR LR
+label13:
+    BR LR
+label14:
+    BR LR
+label15:
+    BR LR
+label16:
+    BR LR
