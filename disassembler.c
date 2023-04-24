@@ -22,14 +22,14 @@ typedef struct instruction {
     int opcode;
 } instruction_t;
 
-void decode(int32_t*, int); // binary, line
+void decode(int32_t, int); // binary, line
 void decode_R_type (instruction_t, int32_t, int); // instruction, binary of insturction, line number
 void decode_I_type (instruction_t, int32_t, int);
 void decode_D_type (instruction_t, int32_t, int);
 void decode_B_type (instruction_t, int32_t, int);
 void decode_CB_type (instruction_t, int32_t, int);
 
-instruction_t instruction[] = {
+instruction_t instructions[] = {
         { "ADD",     decode_R_type,    0b10001011000 },
         { "ADDI",    decode_I_type,   0b1001000100  },
         { "AND",     decode_R_type,    0b10001010000 },
@@ -77,6 +77,7 @@ int main(int argc, char *argv[]){
         for (i = 0; i < (buf.st_size / 4); i++){ // iterates through each value
             program[i] = be32toh(program[i]); // reads 32-bit value and converts it from big-endian to byte order
             //decode(program[i], bprogram + i); // we have to do this method, but it decodes it
+            printf("%x\n", program[i]);
         }
 
         //emulate(bprogram, buf->st_size / 4, &m); // I guess this runs the code that we decode
@@ -84,6 +85,46 @@ int main(int argc, char *argv[]){
     return 0;
 }
 
-void decode(int32_t* program, int line) {
+// TODO: ask alex anpit param instruc. is it a new binary value each time?
+void decode (int32_t instruc, int line) {
+    int i;
+    unsigned int opcode11bit = (instruc & 0xFFE00000) >> 21; // first 11 bits
+    unsigned int opcode10bit = (instruc & 0xFFC00000) >> 20; // first 10 bits
+    unsigned int opcode8bit = (instruc & 0xFF000000) >> 24; // first 8 bits
+    unsigned int opcode6bit = (instruc & 0xFc000000) >> 26; // first 6 bits
+
+    for (i = 0; i < sizeof(instructions); i++) {
+        if (opcode11bit == instructions[i].opcode) {
+            instructions[i].function(instructions[i], instruc, line);
+        }
+        else if (opcode10bit == instructions[i].opcode) {
+            instructions[i].function(instructions[i], instruc, line);
+        }
+        else if (opcode8bit == instructions[i].opcode) {
+            instructions[i].function(instructions[i], instruc, line);
+        }
+        else if (opcode6bit == instructions[i].opcode) {
+            instructions[i].function(instructions[i], instruc, line);
+        }
+    }
+}
+
+void decode_R_type (instruction_t instruction, int32_t opcode, int line){
+
+}
+
+void decode_I_type (instruction_t instruction, int32_t opcode, int line){
+
+}
+
+void decode_D_type (instruction_t instruction, int32_t opcode, int line){
+
+}
+
+void decode_B_type (instruction_t instruction, int32_t opcode, int line){
+
+}
+
+void decode_CB_type (instruction_t instruction, int32_t opcode, int line){
 
 }
