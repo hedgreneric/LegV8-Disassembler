@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -15,19 +14,18 @@
  * To work around this you can run this in the terminal in pyrite (a Linux OS)
  */
 
-
 typedef struct instruction {
     const char* instr;
-    void* function;
+    void (*function)();
     int opcode;
 } instruction_t;
 
-void decode(int32_t, int); // binary, line
-void decode_R_type (instruction_t, int32_t, int); // instruction, binary of insturction, line number
-void decode_I_type (instruction_t, int32_t, int);
-void decode_D_type (instruction_t, int32_t, int);
-void decode_B_type (instruction_t, int32_t, int);
-void decode_CB_type (instruction_t, int32_t, int);
+void decode(int32_t, int*); // binary, line
+void decode_R_type (instruction_t, int32_t, int*); // instruction, binary of insturction, line number
+void decode_I_type (instruction_t, int32_t, int*);
+void decode_D_type (instruction_t, int32_t, int*);
+void decode_B_type (instruction_t, int32_t, int*);
+void decode_CB_type (instruction_t, int32_t, int*);
 
 instruction_t instructions[] = {
         { "ADD",     decode_R_type,    0b10001011000 },
@@ -57,74 +55,64 @@ instruction_t instructions[] = {
         { "SUBS",    decode_R_type,   0b11101011000 }
 };
 
-
 int main(int argc, char *argv[]){
-    bool binary;
     int fd;
     int32_t* program;
     struct stat buf;
     int* bprogram;
     int i;
 
-    // TODO: get value of binary by finding out if file is a binary file
-    binary = true; // we may not have to check if it is a binary file
-    if (binary){ // checks if the file is a binary file
-        fd = open(argv[1], O_RDONLY); // opens the specified file given from the cmd
-        fstat(fd, &buf); // gets the size of the file fills struct stat with the pointer buf
-        program = mmap(NULL, buf.st_size, PROT_READ | PROT_WRITE,
-                       MAP_PRIVATE, fd, 0); // maps the file into memory
-        bprogram = calloc(buf.st_size / 4, sizeof (*bprogram)); //allocates space with the number values and size of int
-        for (i = 0; i < (buf.st_size / 4); i++){ // iterates through each value
-            program[i] = be32toh(program[i]); // reads 32-bit value and converts it from big-endian to byte order
-            //decode(program[i], bprogram + i); // we have to do this method, but it decodes it
-            printf("%x\n", program[i]);
-        }
 
-        //emulate(bprogram, buf->st_size / 4, &m); // I guess this runs the code that we decode
+    fd = open(argv[1], O_RDONLY); // opens the specified file given from the cmd
+    fstat(fd, &buf); // gets the size of the file fills struct stat with the pointer buf
+    program = mmap(NULL, buf.st_size, PROT_READ | PROT_WRITE,
+                   MAP_PRIVATE, fd, 0); // maps the file into memory
+    bprogram = calloc(buf.st_size / 4, sizeof (*bprogram)); //allocates space with the number values and size of int
+    for (i = 0; i < (buf.st_size / 4); i++){ // iterates through each value
+        program[i] = be32toh(program[i]); // reads 32-bit value and converts it from big-endian to byte order
+//        printf("%x", program[i]);
+//        printf(" %p\n", bprogram + i);
+        decode(program[i], bprogram + i); // TODO: this line is creating a Segementaion fault (core dump) no matter what
     }
+    //emulate(bprogram, buf->st_size / 4, &m); // I guess this runs the code that we decode
     return 0;
 }
 
-// TODO: ask alex anpit param instruc. is it a new binary value each time?
-void decode (int32_t instruc, int line) {
-    int i;
-    unsigned int opcode11bit = (instruc & 0xFFE00000) >> 21; // first 11 bits
-    unsigned int opcode10bit = (instruc & 0xFFC00000) >> 20; // first 10 bits
-    unsigned int opcode8bit = (instruc & 0xFF000000) >> 24; // first 8 bits
-    unsigned int opcode6bit = (instruc & 0xFc000000) >> 26; // first 6 bits
+void decode (int32_t binary, int* line) {
+    int opcode;
 
-    for (i = 0; i < sizeof(instructions); i++) {
-        if (opcode11bit == instructions[i].opcode) {
-            instructions[i].function(instructions[i], instruc, line);
-        }
-        else if (opcode10bit == instructions[i].opcode) {
-            instructions[i].function(instructions[i], instruc, line);
-        }
-        else if (opcode8bit == instructions[i].opcode) {
-            instructions[i].function(instructions[i], instruc, line);
-        }
-        else if (opcode6bit == instructions[i].opcode) {
-            instructions[i].function(instructions[i], instruc, line);
+    unsigned int opcode11bit = (binary & 0xFFE00000) >> 21; // first 11 bits
+    unsigned int opcode10bit = (binary & 0xFFC00000) >> 20; // first 10 bits
+    unsigned int opcode8bit = (binary & 0xFF000000) >> 24; // first 8 bits
+    unsigned int opcode6bit = (binary & 0xFc000000) >> 26; // first 6 bits
+
+    for (int i = 0; i < sizeof(instructions) / sizeof(instructions[0]); i++) {
+        opcode = instructions[i].opcode;
+        if (opcode == opcode11bit ||
+            opcode == opcode10bit ||
+            opcode == opcode8bit ||
+            opcode == opcode6bit) {
+            instructions[i].function(instructions[i], binary, line);
         }
     }
 }
 
-void decode_R_type (instruction_t instruction, int32_t opcode, int line){
-
+void decode_R_type (instruction_t instruction, int32_t binary, int* line){
+    printf("R_type\n");
 }
 
-void decode_I_type (instruction_t instruction, int32_t opcode, int line){
-
+void decode_I_type (instruction_t instruction, int32_t binary, int* line){
+    printf("I_type\n");
 }
 
-void decode_D_type (instruction_t instruction, int32_t opcode, int line){
-
+void decode_D_type (instruction_t instruction, int32_t binary, int* line){
+    printf("D_type\n");
 }
 
-void decode_B_type (instruction_t instruction, int32_t opcode, int line){
-
+void decode_B_type (instruction_t instruction, int32_t binary, int* line){
+    printf("B_type\n");
 }
 
-void decode_CB_type (instruction_t instruction, int32_t opcode, int line){
-
+void decode_CB_type (instruction_t instruction, int32_t binary, int* line){
+    printf("CB_type\n");
 }
