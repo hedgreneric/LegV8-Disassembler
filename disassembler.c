@@ -81,10 +81,10 @@ int main(int argc, char *argv[]){
 void decode (int32_t binary, int* line) {
     int opcode;
 
-    unsigned int opcode11bit = (binary & 0xFFE00000) >> 21; // first 11 bits
-    unsigned int opcode10bit = (binary & 0xFFC00000) >> 22; // first 10 bits
-    unsigned int opcode8bit = (binary & 0xFF000000) >> 24; // first 8 bits
-    unsigned int opcode6bit = (binary & 0xFc000000) >> 26; // first 6 bits
+    int32_t opcode11bit = (binary & 0xFFE00000) >> 21; // first 11 bits
+    int32_t opcode10bit = (binary & 0xFFC00000) >> 22; // first 10 bits
+    int32_t opcode8bit = (binary & 0xFF000000) >> 24; // first 8 bits
+    int32_t opcode6bit = (binary & 0xFc000000) >> 26; // first 6 bits
 
     for (int i = 0; i < sizeof(instructions) / sizeof(instructions[0]); i++) {
         opcode = instructions[i].opcode;
@@ -99,10 +99,10 @@ void decode (int32_t binary, int* line) {
 
 // opcode 11 bits, Rm 5 bits, shamt 6 bits, Rn 5 bits, Rd 5 bits
 void decode_R_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
-    unsigned int rm = (binary & 0x001F0000) >> 16;
-    unsigned int shamt = (binary & 0x0000FC00) >> 10;
-    unsigned int rn = (binary & 0x000003E0) >> 5;
-    unsigned int rd = (binary & 0x0000001F);
+    int32_t rm = (binary & 0x001F0000) >> 16;
+    int32_t shamt = (binary & 0x0000FC00) >> 10;
+    int32_t rn = (binary & 0x000003E0) >> 5;
+    int32_t rd = (binary & 0x0000001F);
 
     // instruction is DUMP, HALT, PRNL
     if (instr_idx == 9 || instr_idx == 12 || instr_idx == 18) {
@@ -127,42 +127,52 @@ void decode_R_type (instruction_t instruction, int32_t binary, int* line, int in
 
 // opcode 10 bits, ALU 12 bits, Rn 5 bits, Rd 5 bits
 void decode_I_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
-    unsigned int alu = (binary & 0x003FFC00) >> 10;
-    unsigned int rn = (binary & 0x000003E0) >> 5;
-    unsigned int rd = (binary & 0x0000001F);
+    int32_t alu = (binary & 0x003FFC00) >> 10;
+    int32_t aluNeg = (binary & 0x00200000) >> 21;
+    int32_t rn = (binary & 0x000003E0) >> 5;
+    int32_t rd = (binary & 0x0000001F);
 
+    if (aluNeg == 1){
+        alu = ~alu;
+    }
     printf("%s X%d X%d #%d\n", instruction.instr, rd, rn, alu);
 
 }
 
 // opcode 11 bits, DT address 9 bits, op 2 bits, Rn 5 bits, Rt 5 bits
 void decode_D_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
-    unsigned int dt_addr = (binary & 0x001FF000) >> 12;
-    unsigned int rn = (binary & 0x000003E0) >> 5;
-    unsigned int rt = (binary & 0x0000001F);
+    int32_t dt_addr = (binary & 0x001FF000) >> 12;
+    int32_t rn = (binary & 0x000003E0) >> 5;
+    int32_t rt = (binary & 0x0000001F);
 
     printf("%s X%d, [X%d, #%d]\n", instruction.instr, rt, rn, dt_addr);
 }
 
 void decode_B_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
-    unsigned int braddress = (binary & 0x03FFFFFF);
-    printf("%s %d\n", instruction.instr, braddress);
+    int32_t brAddr = (binary & 0x03FFFFFF);
+    int32_t brAddrNeg = (binary & 0x02000000) >> 25;
+
+    if (brAddrNeg == 1){
+        brAddr = ~brAddr;
+    }
+    printf("%s %d\n", instruction.instr, brAddr);
 }
 
 void decode_CB_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
-    unsigned int cond_br_addr = (binary & 0x00FFFFE0) >> 5;
-    unsigned int rt = (binary & 0x0000001F);
+    int32_t cond_br_addr = (binary & 0x00FFFFE0) >> 5;
+    int32_t rt = (binary & 0x0000001F);
 
-    if (instruction.instr == "B.") {
-        printf("%s%s\n", instruction.instr, get_condition(instruction, cond_br_addr));
+    if (instr_idx == 25) {
+        char* cond = get_condition(instruction, rt);
+        printf("%s%s\n", instruction.instr, cond);
     }
     else {
         printf("%s X%d, DO THE LABEL SHIT HERE\n", instruction.instr, rt);
     }
 }
 
-char* get_condition(instruction_t instruction, int32_t cond_br_addr) {
-    switch (cond_br_addr) {
+char* get_condition(instruction_t instruction, int32_t rt) {
+    switch (rt) {
         case 0:
             return "EQ";
             break;
