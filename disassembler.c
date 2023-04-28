@@ -9,10 +9,6 @@
 #include <stdint.h>
 #include <sys/mman.h>
 #include <endian.h>
-/*
- * The red underlined headers are not on Windows by default.
- * To work around this you can run this in the terminal in pyrite (a Linux OS)
- */
 
 typedef struct instruction {
     const char* instr;
@@ -20,13 +16,13 @@ typedef struct instruction {
     int opcode;
 } instruction_t;
 
-void decode(int32_t, int*); // binary, line
-void decode_R_type (instruction_t, int32_t, int*, int); // instruction, binary of insturction, line number
-void decode_I_type (instruction_t, int32_t, int*, int);
-void decode_D_type (instruction_t, int32_t, int*, int);
-void decode_B_type (instruction_t, int32_t, int*, int);
-void decode_CB_type (instruction_t, int32_t, int*, int);
-char* get_condition (instruction_t, int32_t);
+void decode(int32_t, int); // binary, line
+void decode_R_type (instruction_t, int32_t, int, int); // instruction, binary of insturction, line number
+void decode_I_type (instruction_t, int32_t, int, int);
+void decode_D_type (instruction_t, int32_t, int, int);
+void decode_B_type (instruction_t, int32_t, int, int);
+void decode_CB_type (instruction_t, int32_t, int, int);
+char* get_condition (int32_t);
 
 instruction_t instructions[] = {
         { "ADD",     decode_R_type,    0b10001011000 },
@@ -71,14 +67,15 @@ int main(int argc, char *argv[]){
     bprogram = calloc(buf.st_size / 4, sizeof (*bprogram)); //allocates space with the number values and size of int
     for (i = 0; i < (buf.st_size / 4); i++){ // iterates through each value
         program[i] = be32toh(program[i]); // reads 32-bit value and converts it from big-endian to byte order
-        decode(program[i], bprogram + i); // TODO: this line is creating a Segementaion fault (core dump) no matter what
+        printf("label%d:\n    ", i); // printing the label
+        decode(program[i], i); // TODO: this line is creating a Segementaion fault (core dump) no matter what
     }
 
     //emulate(bprogram, buf->st_size / 4, &m); // I guess this runs the code that we decode
     return 0;
 }
 
-void decode (int32_t binary, int* line) {
+void decode (int32_t binary, int lineNum) {
     int opcode;
 
     int32_t opcode11bit = (binary & 0xFFE00000) >> 21; // first 11 bits
@@ -92,19 +89,19 @@ void decode (int32_t binary, int* line) {
             opcode == opcode10bit ||
             opcode == opcode8bit ||
             opcode == opcode6bit) {
-            instructions[i].function(instructions[i], binary, line, i);
+            instructions[i].function(instructions[i], binary, lineNum, i);
         }
     }
 }
 
 // opcode 11 bits, Rm 5 bits, shamt 6 bits, Rn 5 bits, Rd 5 bits
-void decode_R_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
+void decode_R_type (instruction_t instruction, int32_t binary, int lineNum, int instr_idx){
     int32_t rm = (binary & 0x001F0000) >> 16;
     int32_t shamt = (binary & 0x0000FC00) >> 10;
     int32_t rn = (binary & 0x000003E0) >> 5;
     int32_t rd = (binary & 0x0000001F);
 
-    // instruction is DUMP, HALT, PRNL
+    // instruction is DUMP or HALT or PRNL
     if (instr_idx == 9 || instr_idx == 12 || instr_idx == 18) {
         printf("%s\n", instruction.instr);
     }
@@ -116,7 +113,7 @@ void decode_R_type (instruction_t instruction, int32_t binary, int* line, int in
     else if (instr_idx == 6) {
         printf("%s X%d\n", instruction.instr, rn);
     }
-    // instruction is LSL LSR
+    // instruction is LSL or LSR
     else if (instr_idx == 14 || instr_idx == 15) {
         printf("%s X%d, X%d, #%d\n", instruction.instr, rd, rn, shamt);
     }
@@ -126,12 +123,13 @@ void decode_R_type (instruction_t instruction, int32_t binary, int* line, int in
 }
 
 // opcode 10 bits, ALU 12 bits, Rn 5 bits, Rd 5 bits
-void decode_I_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
+void decode_I_type (instruction_t instruction, int32_t binary, int lineNum, int instr_idx){
     int32_t alu = (binary & 0x003FFC00) >> 10;
     int32_t aluNeg = (binary & 0x00200000) >> 21;
     int32_t rn = (binary & 0x000003E0) >> 5;
     int32_t rd = (binary & 0x0000001F);
 
+    // gets ones compliment
     if (aluNeg == 1){
         alu = ~alu;
     }
@@ -140,7 +138,7 @@ void decode_I_type (instruction_t instruction, int32_t binary, int* line, int in
 }
 
 // opcode 11 bits, DT address 9 bits, op 2 bits, Rn 5 bits, Rt 5 bits
-void decode_D_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
+void decode_D_type (instruction_t instruction, int32_t binary, int lineNum, int instr_idx){
     int32_t dt_addr = (binary & 0x001FF000) >> 12;
     int32_t rn = (binary & 0x000003E0) >> 5;
     int32_t rt = (binary & 0x0000001F);
@@ -148,73 +146,65 @@ void decode_D_type (instruction_t instruction, int32_t binary, int* line, int in
     printf("%s X%d, [X%d, #%d]\n", instruction.instr, rt, rn, dt_addr);
 }
 
-void decode_B_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
+void decode_B_type (instruction_t instruction, int32_t binary, int lineNum, int instr_idx){
     int32_t brAddr = (binary & 0x03FFFFFF);
     int32_t brAddrNeg = (binary & 0x02000000) >> 25;
 
+    brAddr += lineNum;
+
+    // get ones compliment
     if (brAddrNeg == 1){
         brAddr = ~brAddr;
     }
     printf("%s %d\n", instruction.instr, brAddr);
 }
 
-void decode_CB_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
-    int32_t cond_br_addr = (binary & 0x00FFFFE0) >> 5;
+void decode_CB_type (instruction_t instruction, int32_t binary, int lineNum, int instr_idx){
+    int32_t brAddr = (binary & 0x00FFFFE0) >> 5;
     int32_t rt = (binary & 0x0000001F);
 
+    brAddr += lineNum;
+
+    // instruction is B.
     if (instr_idx == 25) {
-        char* cond = get_condition(instruction, rt);
-        printf("%s%s\n", instruction.instr, cond);
+        char* cond = get_condition(rt);
+        printf("%s%s label%d\n", instruction.instr, cond, brAddr);
     }
     else {
-        printf("%s X%d, DO THE LABEL SHIT HERE\n", instruction.instr, rt);
+        printf("%s X%d, label%d\n", instruction.instr, rt, brAddr);
     }
 }
 
-char* get_condition(instruction_t instruction, int32_t rt) {
+char* get_condition(int32_t rt) {
     switch (rt) {
         case 0:
             return "EQ";
-            break;
         case 1:
             return "NE";
-            break;
         case 2:
             return "HS";
-            break;
         case 3:
             return "LO";
-            break;
         case 4:
             return "MI";
-            break;
         case 5:
             return "PL";
-            break;
         case 6:
             return "VS";
-            break;
         case 7:
             return "VC";
-            break;
         case 8:
             return "HI";
-            break;
         case 9:
             return "LS";
-            break;
         case 10:
             return "GE";
-            break;
         case 11:
             return "LT";
-            break;
         case 12:
             return "GT";
-            break;
         case 13:
             return "LE";
-            break;
     }
 }
 
