@@ -1,5 +1,5 @@
 // Eric Hedgren - ehedgren
-// Dominik Chally - drchally TODO check that I put the right netid
+// Dominik Chally - drchally
 
 #include <stdio.h>
 #include <stdlib.h>
