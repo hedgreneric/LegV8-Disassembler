@@ -26,6 +26,7 @@ void decode_I_type (instruction_t, int32_t, int*, int);
 void decode_D_type (instruction_t, int32_t, int*, int);
 void decode_B_type (instruction_t, int32_t, int*, int);
 void decode_CB_type (instruction_t, int32_t, int*, int);
+char* get_condition (instruction_t, int32_t);
 
 instruction_t instructions[] = {
         { "ADD",     decode_R_type,    0b10001011000 },
@@ -52,7 +53,8 @@ instruction_t instructions[] = {
         { "SUB",     decode_R_type,    0b11001011000 },
         { "SUBI",    decode_I_type,   0b1101000100  },
         { "SUBIS",   decode_I_type,  0b1111000100  },
-        { "SUBS",    decode_R_type,   0b11101011000 }
+        { "SUBS",    decode_R_type,   0b11101011000 },
+        { "B.",      decode_CB_type, 0b01010100    }
 };
 
 int main(int argc, char *argv[]){
@@ -71,6 +73,7 @@ int main(int argc, char *argv[]){
         program[i] = be32toh(program[i]); // reads 32-bit value and converts it from big-endian to byte order
         decode(program[i], bprogram + i); // TODO: this line is creating a Segementaion fault (core dump) no matter what
     }
+
     //emulate(bprogram, buf->st_size / 4, &m); // I guess this runs the code that we decode
     return 0;
 }
@@ -135,18 +138,73 @@ void decode_I_type (instruction_t instruction, int32_t binary, int* line, int in
 // opcode 11 bits, DT address 9 bits, op 2 bits, Rn 5 bits, Rt 5 bits
 void decode_D_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
     unsigned int dt_addr = (binary & 0x001FF000) >> 12;
-    // TODO find out if we do anything with op
     unsigned int rn = (binary & 0x000003E0) >> 5;
     unsigned int rt = (binary & 0x0000001F);
 
-
+    printf("%s X%d, [X%d, #%d]\n", instruction.instr, rt, rn, dt_addr);
 }
 
-void decode_B_type (instruction_t instruction, int32_t binary, int* line){
+void decode_B_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
     unsigned int braddress = (binary & 0x03FFFFFF);
     printf("%s %d\n", instruction.instr, braddress);
 }
 
 void decode_CB_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
-    printf("CB_type  %s\n", instruction.instr);
+    unsigned int cond_br_addr = (binary & 0x00FFFFE0) >> 5;
+    unsigned int rt = (binary & 0x0000001F);
+
+    if (instruction.instr == "B.") {
+        printf("%s%s\n", instruction.instr, get_condition(instruction, cond_br_addr));
+    }
+    else {
+        printf("%s X%d, DO THE LABEL SHIT HERE\n", instruction.instr, rt);
+    }
 }
+
+char* get_condition(instruction_t instruction, int32_t cond_br_addr) {
+    switch (cond_br_addr) {
+        case 0:
+            return "EQ";
+            break;
+        case 1:
+            return "NE";
+            break;
+        case 2:
+            return "HS";
+            break;
+        case 3:
+            return "LO";
+            break;
+        case 4:
+            return "MI";
+            break;
+        case 5:
+            return "PL";
+            break;
+        case 6:
+            return "VS";
+            break;
+        case 7:
+            return "VC";
+            break;
+        case 8:
+            return "HI";
+            break;
+        case 9:
+            return "LS";
+            break;
+        case 10:
+            return "GE";
+            break;
+        case 11:
+            return "LT";
+            break;
+        case 12:
+            return "GT";
+            break;
+        case 13:
+            return "LE";
+            break;
+    }
+}
+
