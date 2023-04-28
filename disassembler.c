@@ -62,7 +62,6 @@ int main(int argc, char *argv[]){
     int* bprogram;
     int i;
 
-
     fd = open(argv[1], O_RDONLY); // opens the specified file given from the cmd
     fstat(fd, &buf); // gets the size of the file fills struct stat with the pointer buf
     program = mmap(NULL, buf.st_size, PROT_READ | PROT_WRITE,
@@ -108,10 +107,11 @@ void decode_R_type (instruction_t instruction, int32_t binary, int* line){
 
 // opcode 10 bits, ALU 12 bits, Rn 5 bits, Rd 5 bits
 void decode_I_type (instruction_t instruction, int32_t binary, int* line){
-    unsigned int alu = (binary & 0x003FFC00) >> 10;
+    signed int alu = (binary & 0x003FFC00) >> 10;
     unsigned int rn = (binary & 0x000003E0) >> 5;
     unsigned int rd = (binary & 0x0000001F);
 
+    printf("%s X%d X%d #%d\n", instruction.instr, rd, rn, alu);
 
 }
 
@@ -126,7 +126,8 @@ void decode_D_type (instruction_t instruction, int32_t binary, int* line){
 }
 
 void decode_B_type (instruction_t instruction, int32_t binary, int* line){
-    printf("B_type  %s\n", instruction.instr);
+    unsigned int braddress = (binary & 0x03FFFFFF);
+    printf("%s %d\n", instruction.instr, braddress);
 }
 
 void decode_CB_type (instruction_t instruction, int32_t binary, int* line){
