@@ -70,8 +70,6 @@ int main(int argc, char *argv[]){
     bprogram = calloc(buf.st_size / 4, sizeof (*bprogram)); //allocates space with the number values and size of int
     for (i = 0; i < (buf.st_size / 4); i++){ // iterates through each value
         program[i] = be32toh(program[i]); // reads 32-bit value and converts it from big-endian to byte order
-//        printf("%x", program[i]);
-//        printf(" %p\n", bprogram + i);
         decode(program[i], bprogram + i); // TODO: this line is creating a Segementaion fault (core dump) no matter what
     }
     //emulate(bprogram, buf->st_size / 4, &m); // I guess this runs the code that we decode
@@ -82,7 +80,7 @@ void decode (int32_t binary, int* line) {
     int opcode;
 
     unsigned int opcode11bit = (binary & 0xFFE00000) >> 21; // first 11 bits
-    unsigned int opcode10bit = (binary & 0xFFC00000) >> 20; // first 10 bits
+    unsigned int opcode10bit = (binary & 0xFFC00000) >> 22; // first 10 bits
     unsigned int opcode8bit = (binary & 0xFF000000) >> 24; // first 8 bits
     unsigned int opcode6bit = (binary & 0xFc000000) >> 26; // first 6 bits
 
@@ -97,22 +95,40 @@ void decode (int32_t binary, int* line) {
     }
 }
 
+// opcode 11 bits, Rm 5 bits, shamt 6 bits, Rn 5 bits, Rd 5 bits
 void decode_R_type (instruction_t instruction, int32_t binary, int* line){
-    printf("R_type\n");
+    unsigned int rm = (binary & 0x001F0000) >> 16;
+    unsigned int shamt = (binary & 0x0000FC00) >> 10;
+    unsigned int rn = (binary & 0x000003E0) >> 5;
+    unsigned int rd = (binary & 0x0000001F);
+
+    printf("%s X%d, X%d, X%d\n", instruction.instr, rd, rn, rm);
+    // TODO do some conditionals based on the isntruction
 }
 
+// opcode 10 bits, ALU 12 bits, Rn 5 bits, Rd 5 bits
 void decode_I_type (instruction_t instruction, int32_t binary, int* line){
-    printf("I_type\n");
+    unsigned int alu = (binary & 0x003FFC00) >> 10;
+    unsigned int rn = (binary & 0x000003E0) >> 5;
+    unsigned int rd = (binary & 0x0000001F);
+
+
 }
 
+// opcode 11 bits, DT address 9 bits, op 2 bits, Rn 5 bits, Rt 5 bits
 void decode_D_type (instruction_t instruction, int32_t binary, int* line){
-    printf("D_type\n");
+    unsigned int dt_addr = (binary & 0x001FF000) >> 12;
+    // TODO find out if we do anything with op
+    unsigned int rn = (binary & 0x000003E0) >> 5;
+    unsigned int rt = (binary & 0x0000001F);
+
+
 }
 
 void decode_B_type (instruction_t instruction, int32_t binary, int* line){
-    printf("B_type\n");
+    printf("B_type  %s\n", instruction.instr);
 }
 
 void decode_CB_type (instruction_t instruction, int32_t binary, int* line){
-    printf("CB_type\n");
+    printf("CB_type  %s\n", instruction.instr);
 }
