@@ -21,11 +21,11 @@ typedef struct instruction {
 } instruction_t;
 
 void decode(int32_t, int*); // binary, line
-void decode_R_type (instruction_t, int32_t, int*); // instruction, binary of insturction, line number
-void decode_I_type (instruction_t, int32_t, int*);
-void decode_D_type (instruction_t, int32_t, int*);
-void decode_B_type (instruction_t, int32_t, int*);
-void decode_CB_type (instruction_t, int32_t, int*);
+void decode_R_type (instruction_t, int32_t, int*, int); // instruction, binary of insturction, line number
+void decode_I_type (instruction_t, int32_t, int*, int);
+void decode_D_type (instruction_t, int32_t, int*, int);
+void decode_B_type (instruction_t, int32_t, int*, int);
+void decode_CB_type (instruction_t, int32_t, int*, int);
 
 instruction_t instructions[] = {
         { "ADD",     decode_R_type,    0b10001011000 },
@@ -90,24 +90,41 @@ void decode (int32_t binary, int* line) {
             opcode == opcode10bit ||
             opcode == opcode8bit ||
             opcode == opcode6bit) {
-            instructions[i].function(instructions[i], binary, line);
+            instructions[i].function(instructions[i], binary, line, i);
         }
     }
 }
 
 // opcode 11 bits, Rm 5 bits, shamt 6 bits, Rn 5 bits, Rd 5 bits
-void decode_R_type (instruction_t instruction, int32_t binary, int* line){
+void decode_R_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
     unsigned int rm = (binary & 0x001F0000) >> 16;
     unsigned int shamt = (binary & 0x0000FC00) >> 10;
     unsigned int rn = (binary & 0x000003E0) >> 5;
     unsigned int rd = (binary & 0x0000001F);
 
-    printf("%s X%d, X%d, X%d\n", instruction.instr, rd, rn, rm);
-    // TODO do some conditionals based on the isntruction
+    // instruction is DUMP, HALT, PRNL
+    if (instr_idx == 9 || instr_idx == 12 || instr_idx == 18) {
+        printf("%s\n", instruction.instr);
+    }
+    // instruction is PRNT
+    else if (instr_idx == 19) {
+        printf("%s X%d\n", instruction.instr, rd);
+    }
+    // instruction is BR
+    else if (instr_idx == 6) {
+        printf("%s X%d\n", instruction.instr, rn);
+    }
+    // instruction is LSL LSR
+    else if (instr_idx == 14 || instr_idx == 15) {
+        printf("%s X%d, X%d, #%d\n", instruction.instr, rd, rn, shamt);
+    }
+    else {
+        printf("%s X%d, X%d, X%d\n", instruction.instr, rd, rn, rm);
+    }
 }
 
 // opcode 10 bits, ALU 12 bits, Rn 5 bits, Rd 5 bits
-void decode_I_type (instruction_t instruction, int32_t binary, int* line){
+void decode_I_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
     unsigned int alu = (binary & 0x003FFC00) >> 10;
     unsigned int rn = (binary & 0x000003E0) >> 5;
     unsigned int rd = (binary & 0x0000001F);
@@ -116,7 +133,7 @@ void decode_I_type (instruction_t instruction, int32_t binary, int* line){
 }
 
 // opcode 11 bits, DT address 9 bits, op 2 bits, Rn 5 bits, Rt 5 bits
-void decode_D_type (instruction_t instruction, int32_t binary, int* line){
+void decode_D_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
     unsigned int dt_addr = (binary & 0x001FF000) >> 12;
     // TODO find out if we do anything with op
     unsigned int rn = (binary & 0x000003E0) >> 5;
@@ -125,10 +142,10 @@ void decode_D_type (instruction_t instruction, int32_t binary, int* line){
 
 }
 
-void decode_B_type (instruction_t instruction, int32_t binary, int* line){
+void decode_B_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
     printf("B_type  %s\n", instruction.instr);
 }
 
-void decode_CB_type (instruction_t instruction, int32_t binary, int* line){
+void decode_CB_type (instruction_t instruction, int32_t binary, int* line, int instr_idx){
     printf("CB_type  %s\n", instruction.instr);
 }
