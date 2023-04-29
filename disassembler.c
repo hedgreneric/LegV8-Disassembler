@@ -115,6 +115,7 @@ void decode_R_type (instruction_t instruction, int32_t binary, int lineNum, int 
     }
     // instruction is LSL or LSR
     else if (instr_idx == 14 || instr_idx == 15) {
+
         printf("%s X%d, X%d, #%d\n", instruction.instr, rd, rn, shamt);
     }
     else {
@@ -124,17 +125,12 @@ void decode_R_type (instruction_t instruction, int32_t binary, int lineNum, int 
 
 // opcode 10 bits, ALU 12 bits, Rn 5 bits, Rd 5 bits
 void decode_I_type (instruction_t instruction, int32_t binary, int lineNum, int instr_idx){
-    int32_t alu = (binary & 0x003FFC00) >> 10;
-    int32_t aluNeg = (binary & 0x00200000) >> 21;
+    int32_t alu = (binary & 0x001FFC00) >> 10;
+    int32_t alu_SignBit = (binary & 0x00200000) >> 21;
     int32_t rn = (binary & 0x000003E0) >> 5;
     int32_t rd = (binary & 0x0000001F);
 
-    // gets ones compliment
-    if (aluNeg == 1){
-        alu = ~alu;
-    }
-    printf("%s X%d X%d #%d\n", instruction.instr, rd, rn, alu);
-
+    printf("%s X%d X%d #%d\n", instruction.instr, rd, rn, (signed char) alu);
 }
 
 // opcode 11 bits, DT address 9 bits, op 2 bits, Rn 5 bits, Rt 5 bits
@@ -148,15 +144,10 @@ void decode_D_type (instruction_t instruction, int32_t binary, int lineNum, int 
 
 void decode_B_type (instruction_t instruction, int32_t binary, int lineNum, int instr_idx){
     int32_t brAddr = (binary & 0x03FFFFFF);
-    int32_t brAddrNeg = (binary & 0x02000000) >> 25;
 
     brAddr += lineNum;
 
-    // get ones compliment
-    if (brAddrNeg == 1){
-        brAddr = ~brAddr;
-    }
-    printf("%s %d\n", instruction.instr, brAddr);
+    printf("%s label%d\n", instruction.instr, (unsigned char) brAddr);
 }
 
 void decode_CB_type (instruction_t instruction, int32_t binary, int lineNum, int instr_idx){
@@ -168,10 +159,10 @@ void decode_CB_type (instruction_t instruction, int32_t binary, int lineNum, int
     // instruction is B.
     if (instr_idx == 25) {
         char* cond = get_condition(rt);
-        printf("%s%s label%d\n", instruction.instr, cond, brAddr);
+        printf("%s%s label%d\n", instruction.instr, cond, (signed char) brAddr);
     }
     else {
-        printf("%s X%d, label%d\n", instruction.instr, rt, brAddr);
+        printf("%s X%d, label%d\n", instruction.instr, rt, (signed char) brAddr);
     }
 }
 

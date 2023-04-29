@@ -5,9 +5,9 @@ LDUR x3, [x0, #16]     // Load from memory at address 16 into x3
 
 // Perform some arithmetic operations
 ADD x4, x1, x2        // Add x1 and x2, store result in x4
-ADDI x5, x3, #5       // Add immediate value 10 to x3, store result in x5
+ADDI x5, x3, #-5       // Add immediate value 10 to x3, store result in x5
 SUB x6, x4, x5        // Subtract x5 from x4, store result in x6
-SUBI x7, x6, #5       // Subtract immediate value 1 from x6, store result in x7
+SUBI x7, x6, #-32       // Subtract immediate value 1 from x6, store result in x7
 SUBS x8, x7, x1        // Subtract x1 from x7, set condition flags in CPSR, store result in x8
 SUBIS x9, x8, #0x10     // Subtract immediate value 0x10 from x8, set condition flags in CPSR, store result in x9
 
@@ -18,6 +18,14 @@ EOR  x13, x11, x12     // Bitwise exclusive OR x11 and x12, store result in x13
 EORI x14, x13, #0xFFF // Bitwise exclusive OR immediate value 0xFFFF with x13, store result in x14
 ORR  x15, x2, x3       // Bitwise OR x2 and x3, store result in x15
 ORRI x16, x1, #0xF0    // Bitwise OR immediate value 0xF0 with x1, store result in x16
+
+label1:
+    BR LR
+label15:
+    BR LR
+subroutine:
+    BR LR
+
 
 // Perform some branching operations
 B.EQ label1             // Branch to label1 if the equal flag in CPSR is set
@@ -50,10 +58,6 @@ PRNL                      // Print a blank line
 DUMP                      // Display contents of all registers and memory, as well as the disassembled program
 HALT                      // Trigger a DUMP and terminate the emulator
 
-subroutine:
-    BR LR
-label1:
-    BR LR
 label2:
     BR LR
 label3:
@@ -79,8 +83,6 @@ label12:
 label13:
     BR LR
 label14:
-    BR LR
-label15:
     BR LR
 label16:
     BR LR
